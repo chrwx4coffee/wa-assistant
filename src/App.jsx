@@ -448,7 +448,7 @@ function App() {
             >
               <div className={`toast-icon`}>
                 {toast.type === 'success' ? <CheckCircle size={16} /> :
-                  type === 'error' ? <AlertCircle size={16} /> : <Loader2 size={16} />}
+                  toast.type === 'error' ? <AlertCircle size={16} /> : <Loader2 size={16} />}
               </div>
               <div className="toast-content">
                 <div className="toast-title">{toast.type === 'error' ? 'Hata' : toast.type === 'success' ? 'Başarılı' : 'Bilgi'}</div>
