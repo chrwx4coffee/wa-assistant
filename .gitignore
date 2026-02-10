@@ -23,7 +23,7 @@ dist-electron
 # Local config
 numadkod.xlsx
 .env
-
+diller.txt
 # OS specific
 .DS_Store
 Thumbs.db

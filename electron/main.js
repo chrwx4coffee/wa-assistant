@@ -20,6 +20,44 @@ function log(msg) {
     }
 }
 
+function getChromiumPath() {
+    const platform = process.platform;
+    let executablePath = '';
+
+    if (platform === 'win32') {
+        // Windows: Check common installation paths for Chrome
+        const possiblePaths = [
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe'),
+            path.join(process.env.PROGRAMFILES || '', 'Google\\Chrome\\Application\\chrome.exe'),
+            path.join(process.env['PROGRAMFILES(X86)'] || '', 'Google\\Chrome\\Application\\chrome.exe')
+        ];
+        executablePath = possiblePaths.find(p => fs.existsSync(p)) || '';
+    } else if (platform === 'darwin') {
+        // macOS: Standard path
+        executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+        if (!fs.existsSync(executablePath)) {
+            executablePath = '/Applications/Chromium.app/Contents/MacOS/Chromium';
+        }
+    } else if (platform === 'linux') {
+        // Linux: Check common binary names
+        const possiblePaths = [
+            '/usr/bin/chromium',
+            '/usr/bin/google-chrome',
+            '/usr/bin/google-chrome-stable',
+            '/snap/bin/chromium'
+        ];
+        executablePath = possiblePaths.find(p => fs.existsSync(p)) || '';
+    }
+
+    log(`Detected platform: ${platform}, using browser executable: ${executablePath || 'Not found (Puppeteer will attempt to use bundled)'}`);
+
+    // If we return null/undefined/empty string, Puppeteer might try to use its bundled version (if installed)
+    // or fail. Returning undefined lets Puppeteer decide if we didn't find a system one.
+    return executablePath || undefined;
+}
+
 log('Main process initializing...')
 
 process.env.APP_ROOT = path.join(__dirname, '..')
@@ -103,7 +141,7 @@ ipcMain.on('wa-initialize', async (event) => {
                 dataPath: path.join(app.getPath('userData'), 'wa-sessions')
             }),
             puppeteer: {
-                executablePath: '/usr/bin/chromium',
+                executablePath: getChromiumPath(),
                 headless: true,
                 args: [
                     '--no-sandbox',
