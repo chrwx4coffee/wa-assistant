@@ -78,47 +78,55 @@ function App() {
 
   useEffect(() => {
     // Listen to Electron events
-    window.electronAPI?.onQRReceived((url) => {
-      setQrCode(url)
-      setScreen(SCREENS.WA_LOGIN)
-    })
+    const cleanups = []
 
-    window.electronAPI?.onReady(() => {
-      setScreen(SCREENS.WA_LOADING)
-      setLoadingMsg('Sohbetler yükleniyor...')
-      window.electronAPI.getContacts()
-    })
+    if (window.electronAPI) {
+      cleanups.push(window.electronAPI.onQRReceived((url) => {
+        setQrCode(url)
+        setScreen(SCREENS.WA_LOGIN)
+      }))
 
-    window.electronAPI?.onAuthFailure((message) => {
-      setScreen(SCREENS.START)
-      showToast('Hata: ' + message, 'error')
-    })
+      cleanups.push(window.electronAPI.onReady(() => {
+        setScreen(SCREENS.WA_LOADING)
+        setLoadingMsg('Sohbetler yükleniyor...')
+        window.electronAPI.getContacts()
+      }))
 
-    window.electronAPI?.onLoadingScreen(({ percent, message }) => {
-      setLoadingMsg(`${message} (${percent}%)`)
-    })
+      cleanups.push(window.electronAPI.onAuthFailure((message) => {
+        setScreen(SCREENS.START)
+        showToast('Hata: ' + message, 'error')
+      }))
 
-    window.electronAPI?.onContactsFetched((fetchedContacts) => {
-      setContacts(fetchedContacts)
-      // Always switch to contact select screen when data arrives
-      setScreen(SCREENS.CONTACT_SELECT)
-    })
+      cleanups.push(window.electronAPI.onLoadingScreen(({ percent, message }) => {
+        setLoadingMsg(`${message} (${percent}%)`)
+      }))
 
-    window.electronAPI?.onMessageStatus((status) => {
-      if (status.status === 'completed') {
-        setIsDone(true)
-      } else if (status.status === 'resting') {
-        setSendStatus(prev => [...prev, { type: 'info', message: status.message }])
-      } else {
-        setSendStatus(prev => [...prev, status])
-      }
-    })
+      cleanups.push(window.electronAPI.onContactsFetched((fetchedContacts) => {
+        setContacts(fetchedContacts)
+        // Always switch to contact select screen when data arrives
+        setScreen(SCREENS.CONTACT_SELECT)
+      }))
 
-    window.electronAPI?.onLoggedOut && window.electronAPI.onLoggedOut(() => {
-      setScreen(SCREENS.START)
-      setContacts([])
-      showToast('Başarıyla çıkış yapıldı.', 'success')
-    })
+      cleanups.push(window.electronAPI.onMessageStatus((status) => {
+        if (status.status === 'completed') {
+          setIsDone(true)
+        } else if (status.status === 'resting') {
+          setSendStatus(prev => [...prev, { type: 'info', message: status.message }])
+        } else {
+          setSendStatus(prev => [...prev, status])
+        }
+      }))
+
+      cleanups.push(window.electronAPI.onLoggedOut(() => {
+        setScreen(SCREENS.START)
+        setContacts([])
+        showToast('Başarıyla çıkış yapıldı.', 'success')
+      }))
+    }
+
+    return () => {
+      cleanups.forEach(cleanup => cleanup && cleanup())
+    }
   }, [])
 
   // AUTO-MATCH SIDE EFFECT
